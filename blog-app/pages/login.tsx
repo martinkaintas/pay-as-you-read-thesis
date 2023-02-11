@@ -5,14 +5,17 @@ import Head from 'next/head';
 import Container from '../components/container';
 import Layout from '../components/layout';
 import Header from '../components/header';
+import { UserContext } from '../contexts/user-context/user.context';
 
 const Login: NextPage = () => {
   const [webln, setWebln] = useState<WebLNProvider>(null);
+  const { user, setUser } = React.useContext(UserContext);
 
   const handleLogin = async () => {
     try {
       const webln = await requestProvider();
       setWebln(webln);
+      setUser(webln);
     } catch (err) {
       alert(err.message);
     }
@@ -26,7 +29,7 @@ const Login: NextPage = () => {
       <Container>
         <Header />
         <aside className='flex flex-col items-center justify-center min-h-screen py-2 -mt-56 text-center'>
-          {webln ? (
+          {webln || user ? (
             <div>Logged In! You can now create and pay invoices</div>
           ) : (
             <button

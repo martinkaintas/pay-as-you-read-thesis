@@ -1,7 +1,13 @@
 import { createContext } from 'react';
+import { WebLNProvider } from 'webln';
 
-export const UserContext = createContext({
+interface UserContextI {
+  user: WebLNProvider;
+  setUser: (user: WebLNProvider) => void;
+}
+
+export const UserContext = createContext<UserContextI>({
   user: null,
   // eslint-disable-next-line @typescript-eslint/no-empty-function
-  setUser: (user: any) => { },
+  setUser: (user: WebLNProvider) => { },
 });

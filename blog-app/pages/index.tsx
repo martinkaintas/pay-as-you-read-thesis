@@ -7,6 +7,9 @@ import Head from 'next/head';
 import Post from '../interfaces/post';
 import { useEffect } from 'react';
 import io, { Socket } from 'Socket.IO-client';
+import { UserContext } from '../contexts/user-context/user.context';
+import React from 'react';
+import { WebLNProvider } from 'webln';
 
 let socket: Socket;
 
@@ -16,6 +19,7 @@ type Props = {
 
 export default function Index({ allPosts }: Props) {
   const posts = allPosts;
+  const { user } = React.useContext(UserContext);
 
   useEffect(() => void socketInitializer(), []);
 
@@ -25,6 +29,10 @@ export default function Index({ allPosts }: Props) {
 
     socket.on('connect', () => {
       console.log('connected');
+    });
+
+    socket.on('invoice', (data) => {
+      user && (user as WebLNProvider).sendPayment(data);
     });
   };
 

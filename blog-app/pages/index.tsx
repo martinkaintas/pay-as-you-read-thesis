@@ -9,7 +9,6 @@ import { useEffect } from 'react';
 import io, { Socket } from 'Socket.IO-client';
 import { UserContext } from '../contexts/user-context/user.context';
 import React from 'react';
-import { WebLNProvider } from 'webln';
 
 let socket: Socket;
 
@@ -32,7 +31,7 @@ export default function Index({ allPosts }: Props) {
     });
 
     socket.on('invoice', (data) => {
-      user && (user as WebLNProvider).sendPayment(data);
+      user && user.sendPayment(data);
     });
   };
 

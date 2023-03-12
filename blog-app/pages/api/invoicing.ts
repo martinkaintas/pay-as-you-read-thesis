@@ -1,10 +1,11 @@
 import EventEmitter from 'events';
 import {
-  subscribeToPayments,
   authenticatedLndGrpc,
   AuthenticatedLnd,
   createInvoice,
   getWalletInfo,
+  getInvoice,
+  subscribeToInvoice,
 } from 'lightning';
 
 export class InvoiceService extends EventEmitter {
@@ -14,8 +15,6 @@ export class InvoiceService extends EventEmitter {
     socket: process.env.LN_SOCKET,
   }).lnd;
 
-  paymentListener = subscribeToPayments({ lnd: this.lnd });
-
   constructor() {
     super();
     getWalletInfo({ lnd: this.lnd }, () => {
@@ -24,12 +23,20 @@ export class InvoiceService extends EventEmitter {
   }
 
   async createInvoice(amount: number, description?: string) {
-    const { request } = await createInvoice({
+    const { request, id } = await createInvoice({
       lnd: this.lnd,
       tokens: amount,
       description,
     });
-    return request;
+    return { request, id };
+  }
+
+  async getInvoice(id: string) {
+    return getInvoice({ lnd: this.lnd, id });
+  }
+
+  async subscribeToInvoice(id: string) {
+    return subscribeToInvoice({ lnd: this.lnd, id });
   }
 }
 

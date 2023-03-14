@@ -1,0 +1,11 @@
+{
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/coverage": true
+  },
+  "typescript.referencesCodeLens.enabled": true,
+  "editor.codeActionsOnSave": {
+    "source.fixAll.eslint": true,
+  }
+}

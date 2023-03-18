@@ -1,0 +1,1 @@
+For simplicity reasons, use sample posts and mock a database.

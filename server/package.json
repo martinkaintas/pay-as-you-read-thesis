@@ -32,5 +32,11 @@
     "test": "jest --coverage",
     "prettier": "prettier --config .prettierrc --write .",
     "test:watch": "jest --watch"
+  },
+  "dependencies": {
+    "dotenv": "^16.0.3",
+    "express": "^4.18.2",
+    "lightning": "^7.1.4",
+    "socket.io": "^4.6.1"
   }
 }

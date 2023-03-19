@@ -16,7 +16,6 @@ class SocketSubscription {
 
   registerEvents(): void {
     if(!invoiceService.connected) {
-      console.log("here")
       this.socket.emit('unavailable', 'service unavailable');
       this.socket.disconnect();
       return;

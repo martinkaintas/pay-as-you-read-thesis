@@ -1,5 +1,5 @@
 import { Box, Link } from '@chakra-ui/react';
-import { Link as ReactRouterLink, useMatch, useResolvedPath } from 'react-router-dom';
+import { Link as ReactRouterLink, useMatch } from 'react-router-dom';
 
 interface HeaderItemProps {
   title: string;
@@ -22,8 +22,8 @@ const HeaderItem = ({ title, path, positionAlone }: HeaderItemProps) => {
     >
       <Link
         fontSize='2xl'
-        as={isLink && ReactRouterLink}
-        to={path}
+        as={ReactRouterLink}
+        to={path ?? '/'}
         cursor={isLink ? 'pointer' : 'default'}
         color={isActive ? 'gray.800' : 'inherit'}
         _hover={{

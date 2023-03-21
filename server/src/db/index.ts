@@ -5,6 +5,6 @@ export const get = (id: string): Post => {
   return posts[id];
 };
 
-export const getAll = (): string[] => {
-  return Object.keys(posts);
+export const getAll = (): Record<string, Post> => {
+  return posts;
 };

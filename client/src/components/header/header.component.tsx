@@ -1,6 +1,7 @@
 import { Box, Heading } from '@chakra-ui/react';
 import { useContext, useEffect, useState } from 'react';
 import { UserContext } from '../../contexts/user.context';
+import LoginButton from '../login-button';
 import HeaderItem from './header-item.component';
 
 const Header = () => {
@@ -28,7 +29,7 @@ const Header = () => {
         Pay as you read.
       </Heading>
       <HeaderItem title='Home' path='/' />
-      <HeaderItem title={username ? `Hello ${username}` : 'Login'} path='/login' positionAlone />
+      <HeaderItem title={username ? `Hello ${username}` : <LoginButton />} positionAlone />
     </Box>
   );
 };

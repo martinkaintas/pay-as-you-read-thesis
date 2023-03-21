@@ -1,4 +1,4 @@
-import { getPostInformation, getPostsInformation } from '@app/services/content';
+import { getPostInformation, getPostsIds } from '@app/services/content';
 import express from 'express';
 export const router = express.Router();
 
@@ -12,7 +12,7 @@ router.get('/posts/:id', (req, res) => {
 });
 
 router.get('/posts/', (_, res) => {
-  const posts = getPostsInformation();
+  const posts = getPostsIds();
   if (posts) {
     res.send(posts);
   } else {

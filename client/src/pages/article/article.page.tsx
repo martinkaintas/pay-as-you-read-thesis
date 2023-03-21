@@ -3,26 +3,28 @@ import { useQuery } from 'react-query';
 import { useParams } from 'react-router-dom';
 import { fetchPostById } from '../../api/posts/queries';
 import Loader from '../../components/loader';
+import PurchaseButton from '../../components/purchase-button';
 
 const Article = () => {
   const { articleId } = useParams();
-  const { data, isLoading, isError } = useQuery(['getArticle', articleId], fetchPostById);
+  const { data: post, isLoading, isError } = useQuery(['getArticle', articleId], fetchPostById);
 
-  if (isError || isLoading) {
+  if (isError || isLoading || !post || !articleId) {
     return <Loader isLoading={isLoading} isError={isError} />;
   }
 
   return (
     <Box>
       <Heading color='gray.700' as='h1'>
-        {data?.title}
+        {post?.title}
       </Heading>
       <Text as={'i'} color='gray.500'>
-        {data?.author} {data?.date}
+        {post?.author} {post?.date}
       </Text>
       <Text color='gray.700' mt={5} maxW={'560px'}>
-        {data?.excerpt}
+        {post?.excerpt}
       </Text>
+      <PurchaseButton postId={articleId} label={'Buy next paragraph'} />
     </Box>
   );
 };

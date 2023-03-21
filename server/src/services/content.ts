@@ -9,6 +9,6 @@ export const getPostInformation = (id: string): PostInformation => {
   return information;
 };
 
-export const getPostsInformation = (): string[] => {
-  return getAll();
+export const getPostsIds = (): string[] => {
+  return Object.keys(getAll());
 };

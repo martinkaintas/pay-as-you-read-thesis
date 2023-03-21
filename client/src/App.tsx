@@ -1,14 +1,32 @@
 import { Grid, GridItem } from '@chakra-ui/react';
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Outlet } from 'react-router-dom';
 import Header from './components/header';
 import { UserContext } from './contexts/user.context';
 import { WebLNProvider } from 'webln';
 import SideNav from './components/side-nav';
 import Footer from './components/footer';
+import socket from './socket';
 
 function App() {
   const [user, setUser] = React.useState<WebLNProvider | null>(null);
+
+  useEffect(() => {
+    function onConnect() {
+      console.log('connected');
+    }
+    function onDisconnect() {
+      console.log('disconnected');
+    }
+
+    socket.on('connect', onConnect);
+    socket.on('disconnect', onDisconnect);
+
+    return () => {
+      socket.off('connect', onConnect);
+      socket.off('disconnect', onDisconnect);
+    };
+  }, []);
 
   return (
     <UserContext.Provider value={{ user, setUser }}>

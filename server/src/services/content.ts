@@ -1,4 +1,4 @@
-import { get } from '@app/db';
+import { get, getAll } from '@app/db';
 import { PostInformation } from '@app/models/domain';
 
 export const getPostInformation = (id: string): PostInformation => {
@@ -7,4 +7,8 @@ export const getPostInformation = (id: string): PostInformation => {
 
   const { content, ...information } = post;
   return information;
+};
+
+export const getPostsIds = (): string[] => {
+  return Object.keys(getAll());
 };

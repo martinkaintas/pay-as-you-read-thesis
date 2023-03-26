@@ -7,7 +7,7 @@ import router from '@app/api/rest';
 import cors from 'cors';
 
 const corsOptions = {
-  origin: 'http://localhost:3001',
+  origin: process.env.CORS_ORIGIN,
 };
 
 const app = express();

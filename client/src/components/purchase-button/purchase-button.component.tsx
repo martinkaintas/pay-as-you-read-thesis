@@ -8,9 +8,10 @@ import { UserContext } from '../../contexts/user.context';
 type PurchaseProps = {
   postId: string;
   label?: string;
+  disabled?: boolean;
 };
 
-const PurchaseButton = ({ postId, label }: PurchaseProps) => {
+const PurchaseButton = ({ postId, label, disabled: forceDisabled }: PurchaseProps) => {
   const { user } = useContext(UserContext);
 
   const [disabled, setDisabled] = useState(false);
@@ -45,6 +46,7 @@ const PurchaseButton = ({ postId, label }: PurchaseProps) => {
     <Button
       onClick={buyParagraph}
       isLoading={disabled}
+      disabled={forceDisabled || disabled}
       leftIcon={<CartIcon />}
       colorScheme='blue'
       variant='solid'

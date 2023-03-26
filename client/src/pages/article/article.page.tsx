@@ -10,17 +10,19 @@ import socket from '../../socket';
 const Article = () => {
   const { articleId } = useParams();
   const { data: post, isLoading, isError } = useQuery(['getArticle', articleId], fetchPostById);
-  const [content, setContent] = useState('');
+  const [paragraphs, setParagraphs] = useState<string[]>([]);
   const [isWholePostRendered, setIsWholePostRendered] = useState(false)
 
   useEffect(() => {
+    setParagraphs([]);
+    setIsWholePostRendered(false);
     return () => {
       socket.off('paragraph', appendParagraph);
     };
-  });
+  },[articleId]);
 
   const appendParagraph = (paragraph: string) => {
-    setContent(content + '\n\n' + paragraph);
+    setParagraphs([...paragraphs, paragraph]);
   };
 
   socket.on('paragraph', appendParagraph);
@@ -44,7 +46,9 @@ const Article = () => {
       <PurchaseButton postId={articleId} disabled={isWholePostRendered} label={'Buy next paragraph'} />
 
       <Text color='gray.700' mt={5} maxW={'560px'}>
-        {content}
+        {paragraphs.map((paragraph, index) => (
+          <Text key={index}>{paragraph}</Text>
+        ))}
       </Text>
 
       {isWholePostRendered && (

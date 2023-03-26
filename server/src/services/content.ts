@@ -2,7 +2,7 @@ import { get, getAll } from '@app/db';
 import { PostInformation } from '@app/models/domain';
 
 export const splitTextIntoParagraphs = (text: string): string[] => {
-  return text.split('\n\n');
+  return text.split(/\r?\n\s*\r?\n/);
 };
 
 export const getPostInformation = (

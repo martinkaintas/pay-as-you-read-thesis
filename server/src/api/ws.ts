@@ -1,5 +1,8 @@
+import {
+  EmittedEventPayload,
+  SubscribedEventPayload,
+} from '@app/index';
 import { Server, Socket } from 'socket.io';
-import EventEmitter from 'events';
 import { GetInvoiceResult } from 'lightning';
 import invoiceService from '@app/services/invoicing';
 import { get } from '@app/db';
@@ -22,16 +25,34 @@ class SocketSubscription {
     this.registerEvents();
   }
 
+  emit = <T extends keyof EmittedEventPayload>(
+    ...[name, payload]: EmittedEventPayload[T] extends undefined
+      ? [T]
+      : [T, EmittedEventPayload[T]]
+  ): void => {
+    this.socket.emit(name, payload);
+  };
+
+  on = <T extends keyof SubscribedEventPayload>(
+    name: T,
+    callback: (payload: SubscribedEventPayload[T]) => void,
+  ): void => {
+    this.socket.on(name satisfies string, callback);
+  };
+
   registerEvents(): void {
     if (!invoiceService.connected) {
-      this.socket.emit('unavailable', 'service unavailable');
+      this.emit('unavailable');
       this.socket.disconnect();
       return;
     }
-    this.socket.on('buyParagraph', (postId) =>
+    this.on('buyParagraph', (postId) =>
       this.handleNextParagraphRequest(postId),
     );
-    this.socket.on('disconnect', () => console.log('socket disconnected'));
+    this.on('disconnect', () => {
+      this.socket.disconnect(true);
+      console.log('socket disconnected');
+    });
   }
 
   handlePostSubscription = (postId: string): ContentSubscription => {
@@ -39,7 +60,7 @@ class SocketSubscription {
     if (!contentSubscription) {
       const post = get(postId);
       if (!post) {
-        this.socket.emit('not found', 'post not found');
+        this.emit('post-not-found');
         throw new Error(`post ${postId} not found`);
       }
       contentSubscription = {
@@ -68,7 +89,7 @@ class SocketSubscription {
         100,
         `next paragraph of post ${postId}`,
       );
-      this.socket.emit('invoice', request);
+      this.emit('invoice', request);
       this.subscribeToInvoice(id, contentSubscription);
     } else {
       console.log('not connected');
@@ -90,20 +111,22 @@ class SocketSubscription {
     contentSubscription: ContentSubscription,
   ): Promise<void> => {
     if (invoice.is_confirmed) {
-      const { paragraphs, currentParagraph,postId } = contentSubscription;
-      console.log(`post: ${postId} - paid for paragraph index ${currentParagraph}/${paragraphs.length - 1}`);
+      const { paragraphs, currentParagraph, postId } = contentSubscription;
+      console.log(
+        `post: ${postId} - paid for paragraph index ${currentParagraph}/${
+          paragraphs.length - 1
+        }`,
+      );
 
       if (currentParagraph < paragraphs.length) {
-        this.socket.emit('paragraph', paragraphs[currentParagraph]);
+        this.emit('paragraph', paragraphs[currentParagraph]);
         contentSubscription.currentParagraph += 1;
 
-        if (currentParagraph === paragraphs.length-1) {
-          this.socket.emit('end-of-post');
+        if (currentParagraph === paragraphs.length - 1) {
+          this.emit('end-of-post');
           this.contentSubscription.delete(contentSubscription.postId);
         }
       }
-
-      
     }
   };
 }

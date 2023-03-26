@@ -19,7 +19,9 @@
     "strictNullChecks": false,
     "paths": {
       "*": ["node_modules/*"],
-      "@app/*": ["src/*"]
+      "@app/*": ["src/*"],
+      "@server": ["./src/index.d.ts"],
+      "@client": ["../client/src/index.d.ts"],
     },
   },
 }

@@ -1,5 +1,4 @@
-import { Box, Button, Link, Text } from '@chakra-ui/react';
-import { Link as ReactRouterLink } from 'react-router-dom';
+import { Box, Button, Text } from '@chakra-ui/react';
 import { useContext, useEffect, useState } from 'react';
 import CartIcon from '../../assets/component-icons/cart';
 import socket from '../../socket';
@@ -8,23 +7,26 @@ import { UserContext } from '../../contexts/user.context';
 type PurchaseProps = {
   postId: string;
   label?: string;
+  disabled?: boolean;
 };
 
-const PurchaseButton = ({ postId, label }: PurchaseProps) => {
+const PurchaseButton = ({ postId, label, disabled: forceDisabled }: PurchaseProps) => {
   const { user } = useContext(UserContext);
 
-  const [disabled, setDisabled] = useState(false);
+  const [isLoading, setIsLoading] = useState(forceDisabled);
+
+  const disabled = isLoading || forceDisabled;
 
   const buyParagraph = () => {
     if (disabled) return;
 
-    setDisabled(true);
+    setIsLoading(true);
     socket.emit('buyParagraph', postId);
   };
 
   useEffect(() => {
     function onInvoice(data: any) {
-      user && user.sendPayment(data).finally(() => setDisabled(false));
+      user && user.sendPayment(data).finally(() => setIsLoading(false));
     }
 
     socket.on('invoice', onInvoice);
@@ -37,14 +39,15 @@ const PurchaseButton = ({ postId, label }: PurchaseProps) => {
   if (!user)
     return (
       <Box mt={2}>
-        <Text>Please login to buy this paragraph</Text>
+        <Text>Please login to start buying paragraphs</Text>
       </Box>
     );
 
   return (
     <Button
       onClick={buyParagraph}
-      isLoading={disabled}
+      isLoading={isLoading}
+      isDisabled={disabled}
       leftIcon={<CartIcon />}
       colorScheme='blue'
       variant='solid'

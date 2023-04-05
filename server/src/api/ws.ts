@@ -1,57 +1,132 @@
+import {
+  EmittedEventPayload,
+  SubscribedEventPayload,
+} from '@app/index';
 import { Server, Socket } from 'socket.io';
-import EventEmitter from 'events';
 import { GetInvoiceResult } from 'lightning';
 import invoiceService from '@app/services/invoicing';
+import { get } from '@app/db';
+import { splitTextIntoParagraphs } from '@app/services/content';
 
 const socketSubscriptions = new Map<string, SocketSubscription>();
 
+interface ContentSubscription {
+  postId: string;
+  paragraphs: string[];
+  currentParagraph: number;
+}
+
 class SocketSubscription {
   private socket: Socket;
-  private invoiceListeners = new Map<string, EventEmitter>();
+  private contentSubscription = new Map<string, ContentSubscription>();
 
   constructor(socket: Socket) {
     this.socket = socket;
     this.registerEvents();
   }
 
+  emit = <T extends keyof EmittedEventPayload>(
+    ...[name, payload]: EmittedEventPayload[T] extends undefined
+      ? [T]
+      : [T, EmittedEventPayload[T]]
+  ): void => {
+    this.socket.emit(name, payload);
+  };
+
+  on = <T extends keyof SubscribedEventPayload>(
+    name: T,
+    callback: (payload: SubscribedEventPayload[T]) => void,
+  ): void => {
+    this.socket.on(name satisfies string, callback);
+  };
+
   registerEvents(): void {
-    if(!invoiceService.connected) {
-      this.socket.emit('unavailable', 'service unavailable');
+    if (!invoiceService.connected) {
+      this.emit('unavailable');
       this.socket.disconnect();
       return;
     }
-    this.socket.on('buyParagraph', (postId) =>
+    this.on('buyParagraph', (postId) =>
       this.handleNextParagraphRequest(postId),
     );
-    this.socket.on('disconnect', () => console.log('socket disconnected'));
+    this.on('disconnect', () => {
+      this.socket.disconnect(true);
+      console.log('socket disconnected');
+    });
   }
-  handleNextParagraphRequest = async (postId:string): Promise<void> => {
-    console.log(
-      `socket wants to buy next paragraph of post ${postId}`,
-    );
-    if(invoiceService.connected) {
-    const { request, id } = await invoiceService.createInvoice(
-      100,
-      `next paragraph of post ${postId}`,
-    );
-    this.socket.emit('invoice', request);
-    this.subscribeToInvoice(id);
+
+  handlePostSubscription = (postId: string): ContentSubscription => {
+    let contentSubscription = this.contentSubscription.get(postId);
+    if (!contentSubscription) {
+      const post = get(postId);
+      if (!post) {
+        this.emit('post-not-found');
+        throw new Error(`post ${postId} not found`);
+      }
+      contentSubscription = {
+        postId,
+        paragraphs: splitTextIntoParagraphs(post.content),
+        currentParagraph: 0,
+      };
+      this.contentSubscription.set(postId, contentSubscription);
+      console.log(`client wants to subscribe to post ${postId}`);
+    }
+
+    return contentSubscription;
+  };
+
+  handleNextParagraphRequest = async (postId: string): Promise<void> => {
+    let contentSubscription: ContentSubscription;
+    try {
+      contentSubscription = this.handlePostSubscription(postId);
+    } catch (e) {
+      console.warn(e);
+      return;
+    }
+    console.log(`client wants to buy next paragraph of post ${postId}`);
+    if (invoiceService.connected) {
+      const { request, id } = await invoiceService.createInvoice(
+        100,
+        `next paragraph of post ${postId}`,
+      );
+      this.emit('invoice', request);
+      this.subscribeToInvoice(id, contentSubscription);
     } else {
-      console.log("not connected")
+      console.log('not connected');
     }
   };
 
-  subscribeToInvoice = async (id: string): Promise<void> => {
+  subscribeToInvoice = async (
+    id: string,
+    contentSubscription: ContentSubscription,
+  ): Promise<void> => {
     const invoiceSubscription = await invoiceService.subscribeToInvoice(id);
-    this.invoiceListeners.set(id, invoiceSubscription);
-    invoiceSubscription.on('invoice_updated', this.handleInvoiceUpdate);
+    invoiceSubscription.on('invoice_updated', (invoice) =>
+      this.handleInvoiceUpdate(invoice, contentSubscription),
+    );
   };
 
-  handleInvoiceUpdate = async (invoice: GetInvoiceResult): Promise<void> => {
+  handleInvoiceUpdate = async (
+    invoice: GetInvoiceResult,
+    contentSubscription: ContentSubscription,
+  ): Promise<void> => {
     if (invoice.is_confirmed) {
-      console.log('invoice paid');
-      this.invoiceListeners.get(invoice.id).removeAllListeners();
-      this.invoiceListeners.delete(invoice.id);
+      const { paragraphs, currentParagraph, postId } = contentSubscription;
+      console.log(
+        `post: ${postId} - paid for paragraph index ${currentParagraph}/${
+          paragraphs.length - 1
+        }`,
+      );
+
+      if (currentParagraph < paragraphs.length) {
+        this.emit('paragraph', paragraphs[currentParagraph]);
+        contentSubscription.currentParagraph += 1;
+
+        if (currentParagraph === paragraphs.length - 1) {
+          this.emit('end-of-post');
+          this.contentSubscription.delete(contentSubscription.postId);
+        }
+      }
     }
   };
 }
@@ -60,11 +135,11 @@ export function registerSocketEvents(io: Server): void {
   io.on('disconnect', (socket: Socket) => {
     console.log('socket disconnected', socket.id);
     socketSubscriptions.delete(socket.id);
-  }); 
+  });
   io.on('connection', (socket: Socket) => {
     console.log('socket connected', socket.id);
     const socketService = new SocketSubscription(socket);
     socketSubscriptions.set(socket.id, socketService);
   });
-  console.log("ready to accept subscriptions")
+  console.log('ready to accept subscriptions');
 }

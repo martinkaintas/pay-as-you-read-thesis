@@ -48,7 +48,7 @@ const PurchaseButton = ({ postId, label, disabled: forceDisabled }: PurchaseProp
       onClick={buyParagraph}
       isLoading={isLoading}
       isDisabled={disabled}
-      leftIcon={<CartIcon />}
+      leftIcon={<CartIcon fill='white' />}
       colorScheme='blue'
       variant='solid'
       mt={2}

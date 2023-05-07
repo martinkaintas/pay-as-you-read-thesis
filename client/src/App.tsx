@@ -7,16 +7,27 @@ import { WebLNProvider } from 'webln';
 import SideNav from './components/side-nav';
 import Footer from './components/footer';
 import socket from './socket';
+import Status from './components/status';
 
 function App() {
   const [user, setUser] = React.useState<WebLNProvider | null>(null);
+  const [wsStatus, setWsStatus] = React.useState<'connected' | 'disconnected'>('disconnected');
+  const [userStatus, setUserStatus] = React.useState<'logged out' | 'logged in'>('logged out');
+
+  useEffect(() => {
+    if (user) {
+      setUserStatus('logged in');
+    } else {
+      setUserStatus('logged out');
+    }
+  }, [user]);
 
   useEffect(() => {
     function onConnect() {
-      console.log('connected');
+      setWsStatus('connected');
     }
     function onDisconnect() {
-      console.log('disconnected');
+      setWsStatus('disconnected');
     }
 
     socket.on('connect', onConnect);
@@ -30,6 +41,7 @@ function App() {
 
   return (
     <UserContext.Provider value={{ user, setUser }}>
+      <Status wsStatus={wsStatus} userStatus={userStatus} />
       <Grid
         templateAreas={`"header header"
                   "nav main"

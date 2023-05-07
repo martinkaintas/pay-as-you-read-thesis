@@ -56,7 +56,7 @@ const Article = () => {
       <Text color='gray.700' mt={5} maxW={'560px'} fontWeight='medium'>
         {post?.excerpt}
       </Text>
-      <PurchaseButton postId={articleId} disabled={article?.hasPurchasedFullArticle} label={'Buy next paragraph'} />
+      <PurchaseButton postId={articleId} paragraphIdx={article?.paragraphs.length} disabled={article?.hasPurchasedFullArticle} label={'Buy next paragraph'} />
 
       <Text color='gray.700' mt={5} maxW={'560px'} fontWeight='medium'>
         {article?.paragraphs.map((paragraph, index) => (

@@ -1,5 +1,5 @@
 
-import { createContext, useContext, useState } from "react";
+import { createContext, useContext, useEffect, useState } from "react";
 
 export interface IArticle {
   id: string;
@@ -15,6 +15,17 @@ interface IArticleContext {
   setHasPurchasedFullArticle: (articleId: string) => void;
 }
 
+function getInitialState(): IArticleContext["articles"] {
+  const data = localStorage.getItem('articles')
+  let articles;
+  try {
+    articles = JSON.parse(data || '{}')
+  } catch (e) {
+    articles = {}
+  }
+  return articles
+}
+
 export const ArticleContext = createContext<IArticleContext>({
   articles: {},
   addArticle: () => undefined,
@@ -25,7 +36,11 @@ export const ArticleContext = createContext<IArticleContext>({
 
 
 function ArticleProvider(props: any) {
-  const [articles, setArticles] = useState<IArticleContext["articles"]>({});
+  const [articles, setArticles] = useState<IArticleContext["articles"]>(getInitialState());
+
+  useEffect(() => {
+    localStorage.setItem('articles', JSON.stringify(articles))
+  }, [articles])
 
   function addArticle(article: IArticle) {
     if (articles[article.id]) {

@@ -6,14 +6,15 @@ import { UserContext } from '../../contexts/user.context';
 
 type PurchaseProps = {
   postId: string;
+  paragraphIdx?: number;
   label?: string;
   disabled?: boolean;
 };
 
-const PurchaseButton = ({ postId, label, disabled: forceDisabled }: PurchaseProps) => {
+const PurchaseButton = ({ postId, paragraphIdx, label, disabled: forceDisabled }: PurchaseProps) => {
   const { user } = useContext(UserContext);
 
-  const [isLoading, setIsLoading] = useState(forceDisabled);
+  const [isLoading, setIsLoading] = useState(false);
 
   const disabled = isLoading || forceDisabled;
 
@@ -21,7 +22,9 @@ const PurchaseButton = ({ postId, label, disabled: forceDisabled }: PurchaseProp
     if (disabled) return;
 
     setIsLoading(true);
-    socket.emit('buyParagraph', postId);
+    paragraphIdx
+      ? socket.emit('buyParagraph', [postId, paragraphIdx])
+      : socket.emit('buyParagraph', [postId]);
   };
 
   useEffect(() => {

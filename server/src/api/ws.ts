@@ -7,6 +7,7 @@ import { GetInvoiceResult } from 'lightning';
 import invoiceService from '@app/services/invoicing';
 import { get } from '@app/db';
 import { splitTextIntoParagraphs } from '@app/services/content';
+import { getParagraphText } from '@app/utils/helper';
 
 const socketSubscriptions = new Map<string, SocketSubscription>();
 
@@ -46,8 +47,8 @@ class SocketSubscription {
       this.socket.disconnect();
       return;
     }
-    this.on('buyParagraph', (postId) =>
-      this.handleNextParagraphRequest(postId),
+    this.on('buyParagraph', ([postId, paragraphIdx]) =>
+      this.handleNextParagraphRequest(postId, paragraphIdx),
     );
     this.on('disconnect', () => {
       this.socket.disconnect(true);
@@ -55,7 +56,7 @@ class SocketSubscription {
     });
   }
 
-  handlePostSubscription = (postId: string): ContentSubscription => {
+  handlePostSubscription = (postId: string, paragraphIdx?: number): ContentSubscription => {
     let contentSubscription = this.contentSubscription.get(postId);
     if (!contentSubscription) {
       const post = get(postId);
@@ -66,28 +67,28 @@ class SocketSubscription {
       contentSubscription = {
         postId,
         paragraphs: splitTextIntoParagraphs(post.content),
-        currentParagraph: 0,
+        currentParagraph: paragraphIdx || 0,
       };
       this.contentSubscription.set(postId, contentSubscription);
-      console.log(`client wants to subscribe to post ${postId}`);
+      console.log(`client wants to ${paragraphIdx ? 'continue reading' : 'subscribe to'} post ${postId}`);
     }
 
     return contentSubscription;
   };
 
-  handleNextParagraphRequest = async (postId: string): Promise<void> => {
+  handleNextParagraphRequest = async (postId: string, paragraphIdx?: number): Promise<void> => {
     let contentSubscription: ContentSubscription;
     try {
-      contentSubscription = this.handlePostSubscription(postId);
+      contentSubscription = this.handlePostSubscription(postId, paragraphIdx);
     } catch (e) {
       console.warn(e);
       return;
     }
-    console.log(`client wants to buy next paragraph of post ${postId}`);
+    console.log(`client wants to buy ${getParagraphText(paragraphIdx)}of post ${postId}`);
     if (invoiceService.connected) {
       const { request, id } = await invoiceService.createInvoice(
         100,
-        `next paragraph of post ${postId}`,
+        `${getParagraphText(paragraphIdx)} of post ${postId}`,
       );
       this.emit('invoice', request);
       this.subscribeToInvoice(id, contentSubscription);
@@ -113,8 +114,7 @@ class SocketSubscription {
     if (invoice.is_confirmed) {
       const { paragraphs, currentParagraph, postId } = contentSubscription;
       console.log(
-        `post: ${postId} - paid for paragraph index ${currentParagraph}/${
-          paragraphs.length - 1
+        `post: ${postId} - paid for paragraph index ${currentParagraph}/${paragraphs.length - 1
         }`,
       );
 

@@ -1,3 +1,3 @@
 export interface EmittedEventPayload {
-  'buyParagraph': string;
+  'buyParagraph': [string, number] | [string];
 }

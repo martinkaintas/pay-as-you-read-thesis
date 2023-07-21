@@ -1,50 +1,46 @@
-import EventEmitter from 'events';
-import {
-  authenticatedLndGrpc,
-  AuthenticatedLnd,
-  createInvoice,
-  getWalletInfo,
-  getInvoice,
-  subscribeToInvoice,
-  GetInvoiceResult,
-} from 'lightning';
+import { Invoice, LightningAddress } from "alby-tools";
+import EventEmitter from "events";
 
 export class InvoiceService {
   connected = false;
 
-  private lnd: AuthenticatedLnd = authenticatedLndGrpc({
-    cert: process.env.LN_CERT,
-    macaroon: process.env.LN_MACAROON,
-    socket: process.env.LN_SOCKET,
-  }).lnd;
+  private ln: LightningAddress;
+
 
   constructor() {
-      getWalletInfo({ lnd: this.lnd }, (err) => {
-      if (err) {
-        console.error('Error connecting to LND', err);
+    this.ln = new LightningAddress(process.env.LN_ADDRESS);
+    this.ln.fetch().then(() =>
+      this.connected = true
+    );
+  }
+
+  async createInvoice(amount: number, description?: string): Promise<Invoice> {
+    const invoice = await this.ln.requestInvoice({ satoshi: amount, comment: description });
+    return invoice;
+  }
+
+  async isPaid(invoice: Invoice): Promise<boolean> {
+    return await invoice.isPaid();
+  }
+
+  async subscribeToInvoice(invoice: Invoice): Promise<EventEmitter> {
+    const emitter = new EventEmitter();
+    const maxPolls = 100; // 20 seconds
+    let pollCount = 0;
+
+    const poll = async () => {
+      pollCount++;
+      const paid = await invoice.isPaid();
+      if (paid) {
+        emitter.emit('invoice_paid');
+      } else if (pollCount < maxPolls) {
+        setTimeout(poll, 200);
       }
-      this.connected = true;
-    });
-  }
+    };
 
-  async createInvoice(amount: number, description?: string): Promise<{
-    request: string;
-    id: string;
-  }> {
-    const { request, id } = await createInvoice({
-      lnd: this.lnd,
-      tokens: amount,
-      description,
-    });
-    return { request, id };
-  }
+    poll();
 
-  async getInvoice(id: string): Promise<GetInvoiceResult> {
-    return getInvoice({ lnd: this.lnd, id });
-  }
-
-  async subscribeToInvoice(id: string): Promise<EventEmitter> {
-    return subscribeToInvoice({ lnd: this.lnd, id });
+    return emitter;
   }
 }
 

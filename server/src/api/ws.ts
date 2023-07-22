@@ -3,7 +3,7 @@ import {
   SubscribedEventPayload,
 } from '@app/index';
 import { Server, Socket } from 'socket.io';
-import { GetInvoiceResult } from 'lightning';
+import { Invoice } from 'alby-tools';
 import invoiceService from '@app/services/invoicing';
 import { get } from '@app/db';
 import { splitTextIntoParagraphs } from '@app/services/content';
@@ -86,49 +86,60 @@ class SocketSubscription {
     }
     console.log(`client wants to buy ${getParagraphText(paragraphIdx)}of post ${postId}`);
     if (invoiceService.connected) {
-      const { request, id } = await invoiceService.createInvoice(
+      const invoice = await invoiceService.createInvoice(
         100,
         `${getParagraphText(paragraphIdx)} of post ${postId}`,
       );
-      this.emit('invoice', request);
-      this.subscribeToInvoice(id, contentSubscription);
+      this.emit('invoice', invoice.paymentRequest);
+      this.subscribeToInvoice(invoice, contentSubscription);
     } else {
       console.log('not connected');
     }
   };
 
   subscribeToInvoice = async (
-    id: string,
+    invoice: Invoice,
     contentSubscription: ContentSubscription,
   ): Promise<void> => {
-    const invoiceSubscription = await invoiceService.subscribeToInvoice(id);
-    invoiceSubscription.on('invoice_updated', (invoice) =>
-      this.handleInvoiceUpdate(invoice, contentSubscription),
+    const invoiceSubscription = await invoiceService.subscribeToInvoice(invoice);
+    invoiceSubscription.on('invoice_paid', () =>
+      this.handleInvoicePaid(contentSubscription),
+    );
+    invoiceSubscription.on('invoice_timeout', () =>
+      this.handleInvoiceTimeout(contentSubscription),
     );
   };
 
-  handleInvoiceUpdate = async (
-    invoice: GetInvoiceResult,
+  handleInvoicePaid = async (
     contentSubscription: ContentSubscription,
   ): Promise<void> => {
-    if (invoice.is_confirmed) {
-      const { paragraphs, currentParagraph, postId } = contentSubscription;
-      console.log(
-        `post: ${postId} - paid for paragraph index ${currentParagraph}/${paragraphs.length - 1
-        }`,
-      );
+    const { paragraphs, currentParagraph, postId } = contentSubscription;
+    console.log(
+      `post: ${postId} - paid for paragraph index ${currentParagraph}/${paragraphs.length - 1
+      }`,
+    );
 
-      if (currentParagraph < paragraphs.length) {
-        this.emit('paragraph', paragraphs[currentParagraph]);
-        contentSubscription.currentParagraph += 1;
+    if (currentParagraph < paragraphs.length) {
+      this.emit('paragraph', paragraphs[currentParagraph]);
+      contentSubscription.currentParagraph += 1;
 
-        if (currentParagraph === paragraphs.length - 1) {
-          this.emit('end-of-post');
-          this.contentSubscription.delete(contentSubscription.postId);
-        }
+      if (currentParagraph === paragraphs.length - 1) {
+        this.emit('end-of-post');
+        this.contentSubscription.delete(contentSubscription.postId);
       }
     }
   };
+
+  handleInvoiceTimeout = async (
+    contentSubscription: ContentSubscription,
+  ): Promise<void> => {
+    const { currentParagraph, postId } = contentSubscription;
+    console.log(
+      `post: ${postId} - payment timeout for paragraph index ${currentParagraph}`,
+    );
+    this.emit('payment-timeout');
+    // TODO should refund if payment finaly goes through
+  }
 }
 
 export function registerSocketEvents(io: Server): void {

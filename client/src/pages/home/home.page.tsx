@@ -1,4 +1,4 @@
-import { Heading, Text } from '@chakra-ui/react';
+import { Heading, Text, Link } from '@chakra-ui/react';
 import PageWrapper from '../../components/page-wrapper';
 
 const Home = () => {
@@ -16,7 +16,10 @@ const Home = () => {
         The pay-as-you-read model is implemented using the Lightning Network, a layer-2 payment protocol that allows for fast and cheap payments using Bitcoin.
         Users of the demo application need to have a Lightning Network wallet to be able to purchase paragraphs.
         We suggest that users use Alby, a Lightning Network wallet that is easy to use and has a user-friendly interface.
-        Note that the demo currently only supports LND nodes.
+
+      </Text>
+      <Text color='gray.700' mt={5} maxW={'560px'} align='justify' fontWeight='medium'>
+        If you need a funded test account you can add one from <Link color={'#ecc94b'} textDecoration={'underline'} href='https://github.com/getAlby/lightning-browser-extension/wiki/Test-setup' isExternal target='_blank'>here</Link> to your wallet.
       </Text>
     </PageWrapper>
   );

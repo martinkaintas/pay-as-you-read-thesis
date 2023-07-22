@@ -1,4 +1,4 @@
-import { Box, Button, Text } from '@chakra-ui/react';
+import { Box, Button, Text, useToast } from '@chakra-ui/react';
 import { useContext, useEffect, useState } from 'react';
 import CartIcon from '../../assets/component-icons/cart';
 import socket from '../../socket';
@@ -15,13 +15,17 @@ const PurchaseButton = ({ postId, paragraphIdx, label, disabled: forceDisabled }
   const { user } = useContext(UserContext);
 
   const [isLoading, setIsLoading] = useState(false);
+  const [isHandlingPayment, setIsHandlingPayment] = useState(false);
 
-  const disabled = isLoading || forceDisabled;
+  const toast = useToast()
+
+  const disabled = isLoading || forceDisabled || isHandlingPayment;
 
   const buyParagraph = () => {
     if (disabled) return;
 
     setIsLoading(true);
+    setIsHandlingPayment(true);
     paragraphIdx
       ? socket.emit('buyParagraph', [postId, paragraphIdx])
       : socket.emit('buyParagraph', [postId]);
@@ -32,10 +36,33 @@ const PurchaseButton = ({ postId, paragraphIdx, label, disabled: forceDisabled }
       user && user.sendPayment(data).finally(() => setIsLoading(false));
     }
 
+    function onParagraph() {
+      setIsHandlingPayment(false);
+    }
+
+    function onPaymentTimeout() {
+      setIsHandlingPayment(false);
+      const id = 'payment-failed'
+      if (!toast.isActive(id)) {
+        toast({
+          id,
+          title: 'Payment confirmation timeout.',
+          description: "Payment could not be confirmed. Please try again.",
+          status: 'error',
+          duration: null,
+          isClosable: true,
+        })
+      }
+    }
+
     socket.on('invoice', onInvoice);
+    socket.on('paragraph', onParagraph);
+    socket.on('payment-timeout', onPaymentTimeout);
 
     return () => {
       socket.off('invoice', onInvoice);
+      socket.off('paragraph', onParagraph);
+      socket.off('payment-timeout', onPaymentTimeout);
     };
   }, [user]);
 
@@ -56,7 +83,11 @@ const PurchaseButton = ({ postId, paragraphIdx, label, disabled: forceDisabled }
       variant='solid'
       mt={2}
     >
-      {label ?? 'Buy Paragraph'}
+      {
+        isHandlingPayment
+          ? 'Confirming payment...'
+          : label ?? 'Buy next paragraph'
+      }
     </Button>
   );
 };

@@ -105,6 +105,9 @@ class SocketSubscription {
     invoiceSubscription.on('invoice_paid', () =>
       this.handleInvoicePaid(contentSubscription),
     );
+    invoiceSubscription.on('invoice_timeout', () =>
+      this.handleInvoiceTimeout(contentSubscription),
+    );
   };
 
   handleInvoicePaid = async (
@@ -126,6 +129,17 @@ class SocketSubscription {
       }
     }
   };
+
+  handleInvoiceTimeout = async (
+    contentSubscription: ContentSubscription,
+  ): Promise<void> => {
+    const { currentParagraph, postId } = contentSubscription;
+    console.log(
+      `post: ${postId} - payment timeout for paragraph index ${currentParagraph}`,
+    );
+    this.emit('payment-timeout');
+    // TODO should refund if payment finaly goes through
+  }
 }
 
 export function registerSocketEvents(io: Server): void {

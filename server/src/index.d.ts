@@ -16,6 +16,7 @@ export interface EmittedEventPayload {
   invoice: string;
   paragraph: string;
   'end-of-post': undefined;
+  'payment-timeout': undefined;
 }
 
 export interface SubscribedEventPayload extends ClientEmittedPayload {

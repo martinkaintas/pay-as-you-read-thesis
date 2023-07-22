@@ -11,7 +11,9 @@ export class InvoiceService {
     this.ln = new LightningAddress(process.env.LN_ADDRESS);
     this.ln.fetch().then(() =>
       this.connected = true
-    );
+    ).catch((e) => {
+      console.log(e);
+    });
   }
 
   async createInvoice(amount: number, description?: string): Promise<Invoice> {
@@ -19,13 +21,11 @@ export class InvoiceService {
     return invoice;
   }
 
-  async isPaid(invoice: Invoice): Promise<boolean> {
-    return await invoice.isPaid();
-  }
-
   async subscribeToInvoice(invoice: Invoice): Promise<EventEmitter> {
     const emitter = new EventEmitter();
-    const maxPolls = 100; // 20 seconds
+    const interval = 200;
+    const seconds = 20;
+    const maxPolls = seconds / interval * 1000;
     let pollCount = 0;
 
     const poll = async () => {
@@ -34,7 +34,9 @@ export class InvoiceService {
       if (paid) {
         emitter.emit('invoice_paid');
       } else if (pollCount < maxPolls) {
-        setTimeout(poll, 200);
+        setTimeout(poll, interval);
+      } else {
+        emitter.emit('invoice_timeout');
       }
     };
 

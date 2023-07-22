@@ -1,5 +1,5 @@
-import { SubscribedEvents} from './vite-env';
-import io from 'Socket.IO-client';
+import { SubscribedEvents } from './vite-env';
+import io from 'socket.io-client';
 import { EmittedEventPayload } from '.';
 
 const socket = io(import.meta.env.VITE_WS_URL);

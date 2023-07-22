@@ -3,7 +3,7 @@ import {
   EmittedEvents as ServerEmittedEvents,
   EmittedEventPayload as ServerEmittedPayload,
 } from '@server';
-import { Socket } from 'Socket.IO-client';
+import { Socket } from 'socket.io-client';
 
 interface ImportMetaEnv {
   readonly VITE_WS_URL: string;
